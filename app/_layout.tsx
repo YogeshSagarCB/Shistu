@@ -1,10 +1,25 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { initDB } from '../db/client';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useEffect(() => {
-    initDB();
+    async function prepare() {
+      try {
+        initDB();
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // Tell the application to render
+        await SplashScreen.hideAsync();
+      }
+    }
+
+    prepare();
   }, []);
 
   return (

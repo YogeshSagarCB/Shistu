@@ -28,7 +28,8 @@
       "output": "static"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-asset"
     ]
   }
 }

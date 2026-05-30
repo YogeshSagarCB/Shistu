@@ -1,4 +1,14 @@
 import { db } from './client';
+import { NativeModules, Platform } from 'react-native';
+
+const triggerWidgetSync = () => {
+  if (Platform.OS === 'android' && NativeModules.WidgetSyncModule) {
+    // Sync current list of habits
+    const habits = db.getAllSync<{ id: number; name: string }>(`SELECT id, name FROM habits`);
+    console.log("Syncing habits to widget:", JSON.stringify(habits));
+    NativeModules.WidgetSyncModule.saveHabitsList(JSON.stringify(habits));
+  }
+};
 
 export interface Habit {
   id: number;
@@ -40,26 +50,32 @@ export const addEvent = (habitId: number, value: number = 1.0, notes?: string) =
   const cappedValue = Math.min(value, 999.9);
   const now = new Date().toISOString();
   
-  return db.runSync(
+  const result = db.runSync(
     `INSERT INTO events (habit_id, timestamp, numeric_value, notes) VALUES (?, ?, ?, ?)`,
     habitId, now, cappedValue, notes || null
   );
+  // We don't need to sync list here, only events
+  return result;
 };
 
 /**
  * Creates a new habit.
  */
 export const createHabit = (habit: Omit<Habit, 'id' | 'created_at'>) => {
-  return db.runSync(
+  const result = db.runSync(
     `INSERT INTO habits (name, type, metric_type, metric_unit, color_hex, icon_name, ai_granularity, default_increment) 
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     habit.name, habit.type, habit.metric_type, habit.metric_unit || null, habit.color_hex, habit.icon_name, habit.ai_granularity, habit.default_increment
   );
+  triggerWidgetSync();
+  return result;
 };
 
 /**
  * Deletes a habit and all its events (via Cascade).
  */
 export const deleteHabit = (id: number) => {
-  return db.runSync(`DELETE FROM habits WHERE id = ?`, id);
+  const result = db.runSync(`DELETE FROM habits WHERE id = ?`, id);
+  triggerWidgetSync();
+  return result;
 };
