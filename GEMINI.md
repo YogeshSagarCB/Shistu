@@ -28,3 +28,10 @@ To update the app name, bundle identifier, or package name:
     import Constants from 'expo-constants';
     const APP_NAME = Constants.expoConfig?.name ?? 'Shistu';
     ```
+
+## Native Widgets
+The project includes custom Android widgets.
+- **Synchronization**: Uses `WidgetSyncModule.kt` to sync data between the JS layer and native widgets.
+- **Event Handling**: Actions from the widget are handled by `HabitLogReceiver.kt`, which communicates with the JS layer via a native module emission.
+- **UI Refresh**: Changes to the database trigger `triggerWidgetSync()`, which calls `notifyAppWidgetViewDataChanged` and broadcasts `ACTION_APPWIDGET_UPDATE` to force the widget to refresh.
+

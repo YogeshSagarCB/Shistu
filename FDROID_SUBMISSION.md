@@ -40,7 +40,7 @@ Repo: https://github.com/YogeshSagarCB/Shistu
 Builds:
   - versionName: 1.0.0
     versionCode: 1
-    commit: 43311c4  # Latest release commit hash
+    commit: a825773  # Latest release commit hash (v1.0.0)
     subdir: android
     gradle:
       - yes
