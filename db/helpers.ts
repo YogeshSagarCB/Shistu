@@ -1,13 +1,25 @@
 import { db } from './client';
-import { NativeModules, Platform } from 'react-native';
+import { NativeModules, Platform, DeviceEventEmitter } from 'react-native';
 
-const triggerWidgetSync = () => {
-  if (Platform.OS === 'android' && NativeModules.WidgetSyncModule) {
-    // Sync current list of habits
-    const habits = db.getAllSync<{ id: number; name: string }>(`SELECT id, name FROM habits`);
-    console.log("Syncing habits to widget:", JSON.stringify(habits));
-    NativeModules.WidgetSyncModule.saveHabitsList(JSON.stringify(habits));
+const logToNative = (message: string) => {
+  if (Platform.OS === 'android' && NativeModules.WidgetSyncModule && NativeModules.WidgetSyncModule.logMessage) {
+    NativeModules.WidgetSyncModule.logMessage(message);
+  } else {
+    console.log(message);
   }
+};
+
+// Send broadcast to native Android
+const sendWidgetUpdateBroadcast = () => {
+    if (Platform.OS === 'android') {
+        (NativeModules.WidgetSyncModule as any)?.triggerHabitsUpdated();
+    }
+};
+
+export const triggerWidgetSync = () => {
+    if (Platform.OS === 'android' && NativeModules.WidgetSyncModule) {
+        sendWidgetUpdateBroadcast();
+    }
 };
 
 export interface Habit {
@@ -32,14 +44,15 @@ export interface HabitStats extends Habit {
  */
 export const getTodayHabits = (): HabitStats[] => {
   const today = new Date().toISOString().split('T')[0];
-  return db.getAllSync<HabitStats>(`
+  const result = db.getAllSync<HabitStats>(`
     SELECT 
       h.*, 
       COALESCE(SUM(e.numeric_value), 0) as today_value
     FROM habits h
-    LEFT JOIN events e ON h.id = e.habit_id AND e.timestamp >= ?
+    LEFT JOIN events e ON h.id = e.habit_id AND date(e.timestamp) >= ?
     GROUP BY h.id
   `, today);
+  return result;
 };
 
 /**
@@ -54,7 +67,10 @@ export const addEvent = (habitId: number, value: number = 1.0, notes?: string) =
     `INSERT INTO events (habit_id, timestamp, numeric_value, notes) VALUES (?, ?, ?, ?)`,
     habitId, now, cappedValue, notes || null
   );
-  // We don't need to sync list here, only events
+  
+  // Trigger update when events change
+  sendWidgetUpdateBroadcast();
+  DeviceEventEmitter.emit('refreshHabits');
   return result;
 };
 
@@ -67,7 +83,8 @@ export const createHabit = (habit: Omit<Habit, 'id' | 'created_at'>) => {
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     habit.name, habit.type, habit.metric_type, habit.metric_unit || null, habit.color_hex, habit.icon_name, habit.ai_granularity, habit.default_increment
   );
-  triggerWidgetSync();
+  sendWidgetUpdateBroadcast();
+  DeviceEventEmitter.emit('refreshHabits');
   return result;
 };
 
@@ -76,6 +93,7 @@ export const createHabit = (habit: Omit<Habit, 'id' | 'created_at'>) => {
  */
 export const deleteHabit = (id: number) => {
   const result = db.runSync(`DELETE FROM habits WHERE id = ?`, id);
-  triggerWidgetSync();
+  sendWidgetUpdateBroadcast();
+  DeviceEventEmitter.emit('refreshHabits');
   return result;
 };

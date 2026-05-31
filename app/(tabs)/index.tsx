@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions } from 'react-native';
-import { useState, useCallback } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, DeviceEventEmitter } from 'react-native';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { getTodayHabits, addEvent, HabitStats } from '../../db/helpers';
@@ -12,37 +12,22 @@ export default function TodayScreen() {
   const [noteModalVisible, setNoteModalVisible] = useState(false);
   const [selectedHabit, setSelectedHabit] = useState<HabitStats | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [showSparklines, setShowSparklines] = useState(true);
-  
-  const [sparklineData, setSparklineData] = useState<Record<number, number[]>>({});
   
   const router = useRouter();
   const { width } = useWindowDimensions();
   const cardWidth = width - 40;
 
   const loadHabits = useCallback(async () => {
+    console.log("loadHabits called");
     const data = getTodayHabits();
+    console.log("loadHabits data:", JSON.stringify(data));
     setHabits(data);
-    
-    const show = await SecureStore.getItemAsync('show_sparklines');
-    setShowSparklines(show !== 'false');
-
-    if (show !== 'false') {
-      const newSparkData: Record<number, number[]> = {};
-      
-      for (const h of data) {
-        const history = db.getAllSync<{ total: number }>(
-          `SELECT SUM(numeric_value) as total FROM events WHERE habit_id = ? GROUP BY date(timestamp) ORDER BY date(timestamp) DESC LIMIT 7`,
-          h.id
-        );
-        
-        // Ensure we always return an array, defaulting to empty if no history
-        newSparkData[h.id] = history.map(r => r.total).reverse();
-      }
-      
-      setSparklineData(newSparkData);
-    }
   }, []);
+
+  useEffect(() => {
+    const subscription = DeviceEventEmitter.addListener('refreshHabits', loadHabits);
+    return () => subscription.remove();
+  }, [loadHabits]);
 
   useFocusEffect(
     useCallback(() => {
@@ -105,18 +90,7 @@ export default function TodayScreen() {
                 </Text>
               </View>
               
-              {showSparklines && sparklineData[habit.id] && sparklineData[habit.id].length > 1 && (
-                <View style={styles.sparklineContainer}>
-                  <Sparkline 
-                    key={`${habit.id}-${sparklineData[habit.id].join(',')}`}
-                    data={sparklineData[habit.id]} 
-                    width={50} 
-                    height={30} 
-                    color={habit.color_hex} 
-                    habitName={habit.name}
-                  />
-                </View>
-              )}
+              {/* Sparkline removed as requested */}
 
               <TouchableOpacity 
                 style={[styles.addButton, { backgroundColor: habit.color_hex + '33' }]} 
