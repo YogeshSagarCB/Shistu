@@ -43,7 +43,7 @@ export default function EditHabitScreen() {
         setDefaultIncrement(habit.default_increment?.toString() || '1');
         setSelectedColor(habit.color_hex);
         setSelectedIcon(habit.icon_name);
-        setAiGranularity(habit.ai_granularity);
+        setAiGranularity(habit.ai_granularity || 'aggregated');
       }
     }
   }, [id]);
@@ -184,10 +184,26 @@ export default function EditHabitScreen() {
         </View>
       )}
 
+      <Text style={styles.label}>AI Analysis Mode</Text>
+      <View style={styles.toggleRow}>
+        <TouchableOpacity 
+          style={[styles.smallToggle, aiGranularity === 'aggregated' && styles.activeToggle]}
+          onPress={() => setAiGranularity('aggregated')}
+        >
+          <Text style={[styles.toggleText, aiGranularity === 'aggregated' && styles.activeToggleText]}>Daily Summary</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.smallToggle, aiGranularity === 'raw' && styles.activeToggle]}
+          onPress={() => setAiGranularity('raw')}
+        >
+          <Text style={[styles.toggleText, aiGranularity === 'raw' && styles.activeToggleText]}>Raw Logs</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.label}>Icon Selection</Text>
       <View style={styles.iconSelectionArea}>
         <View style={styles.emojiGrid}>
-            {EMOJI_CATEGORIES[0].emojis.slice(0, 10).map(emoji => (
+            {EMOJI_CATEGORIES[0].emojis.map(emoji => (
                 <TouchableOpacity 
                     key={emoji} 
                     style={[styles.emojiItem, selectedIcon === emoji && styles.activeEmojiItem]}
@@ -216,7 +232,7 @@ export default function EditHabitScreen() {
         ))}
         <View style={styles.customColorContainer}>
             <TextInput
-                style={styles.hexInput}
+                style={[styles.hexInput, !COLORS.includes(selectedColor) && styles.activeHexInput]}
                 value={selectedColor}
                 onChangeText={setSelectedColor}
                 placeholder="#HEX"
@@ -310,7 +326,8 @@ const styles = StyleSheet.create({
   colorCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: 'transparent' },
   activeColorCircle: { borderColor: '#FFF', transform: [{ scale: 1.2 }] },
   customColorContainer: { width: '100%', alignItems: 'center', marginTop: 10 },
-  hexInput: { backgroundColor: '#1E1E1E', color: '#888', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, fontSize: 12, borderFocusColor: '#FFF' },
+  hexInput: { backgroundColor: '#1E1E1E', color: '#888', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20, fontSize: 12, borderWidth: 1, borderColor: 'transparent' },
+  activeHexInput: { borderColor: '#FFF', color: '#FFF' },
   saveButton: { backgroundColor: '#4DA8DA', padding: 20, borderRadius: 16, alignItems: 'center', marginTop: 40 },
   saveButtonText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
   deleteButton: { padding: 18, alignItems: 'center', marginTop: 10 },

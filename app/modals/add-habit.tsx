@@ -156,6 +156,22 @@ export default function AddHabitScreen() {
         </View>
       )}
 
+      <Text style={styles.label}>AI Analysis Mode</Text>
+      <View style={styles.toggleRow}>
+        <TouchableOpacity 
+          style={[styles.smallToggle, aiGranularity === 'aggregated' && styles.activeToggle]}
+          onPress={() => setAiGranularity('aggregated')}
+        >
+          <Text style={[styles.toggleText, aiGranularity === 'aggregated' && styles.activeToggleText]}>Daily Summary</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={[styles.smallToggle, aiGranularity === 'raw' && styles.activeToggle]}
+          onPress={() => setAiGranularity('raw')}
+        >
+          <Text style={[styles.toggleText, aiGranularity === 'raw' && styles.activeToggleText]}>Raw Logs</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.label}>Icon Selection</Text>
       <View style={styles.iconSelectionArea}>
         <View style={styles.emojiGrid}>
