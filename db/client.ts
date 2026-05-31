@@ -2,6 +2,7 @@ import * as SQLite from 'expo-sqlite';
 
 // Opens the database (or creates it if it doesn't exist)
 export const db = SQLite.openDatabaseSync('habits_tracker.db');
+console.log("DATABASE_PATH_LOG:", (db as any).databasePath || "Path not directly available on db object");
 
 export const initDB = () => {
   try {
@@ -46,8 +47,11 @@ export const initDB = () => {
     } catch (e) {
       // Column likely already exists
     }
-
-    console.log("Database initialized successfully.");
+    
+    // Diagnostic log to check tables
+    const tables = db.getAllSync<{ name: string }>(`SELECT name FROM sqlite_master WHERE type='table'`);
+    console.log("Database initialized successfully. Tables in DB:", tables);
+    
   } catch (error) {
     console.error("Error initializing database:", error);
   }

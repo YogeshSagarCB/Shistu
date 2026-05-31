@@ -1,5 +1,5 @@
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, DeviceEventEmitter } from 'react-native';
-import { useState, useCallback, useEffect } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, RefreshControl, Modal, TextInput, useWindowDimensions, DeviceEventEmitter, AppState } from 'react-native';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { getTodayHabits, addEvent, HabitStats } from '../../db/helpers';
@@ -16,6 +16,7 @@ export default function TodayScreen() {
   const router = useRouter();
   const { width } = useWindowDimensions();
   const cardWidth = width - 40;
+  const appState = useRef(AppState.currentState);
 
   const loadHabits = useCallback(async () => {
     console.log("loadHabits called");
@@ -24,22 +25,34 @@ export default function TodayScreen() {
     setHabits(data);
   }, []);
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadHabits();
+    setRefreshing(false);
+  }, [loadHabits]);
+
   useEffect(() => {
     const subscription = DeviceEventEmitter.addListener('refreshHabits', loadHabits);
-    return () => subscription.remove();
-  }, [loadHabits]);
+    
+    // Auto-refresh when app comes to foreground
+    const subscriptionAppState = AppState.addEventListener('change', (nextAppState) => {
+        if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+            onRefresh();
+        }
+        appState.current = nextAppState;
+    });
+
+    return () => {
+        subscription.remove();
+        subscriptionAppState.remove();
+    };
+  }, [loadHabits, onRefresh]);
 
   useFocusEffect(
     useCallback(() => {
       loadHabits();
     }, [loadHabits])
   );
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    loadHabits();
-    setRefreshing(false);
-  }, [loadHabits]);
 
   const handleOpenLogModal = (habit: HabitStats) => {
     setSelectedHabit(habit);
