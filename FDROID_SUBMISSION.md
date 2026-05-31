@@ -40,12 +40,12 @@ Repo: https://github.com/YogeshSagarCB/Shistu
 Builds:
   - versionName: 1.0.0
     versionCode: 1
-    commit: a825773  # Latest release commit hash (v1.0.0)
+    commit: 412256f  # Latest release commit hash (v1.0.0 updated)
     subdir: android
     gradle:
       - yes
     prebuild:
-      - cd .. && npm install && npx expo prebuild --platform android
+      - cd .. && npm install && npx expo prebuild --platform android --clean
 
 AntiFeatures:
   NonFreeNet:

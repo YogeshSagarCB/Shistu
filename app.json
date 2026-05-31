@@ -29,7 +29,8 @@
     },
     "plugins": [
       "expo-sqlite",
-      "expo-asset"
+      "expo-asset",
+      "./plugins/withAndroidWidgets"
     ]
   }
 }
