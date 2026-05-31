@@ -1,0 +1,10 @@
+Shistu is a privacy-focused, local-first habit tracker designed for high performance and minimal friction. 
+
+Key Features:
+- **Local-First Architecture**: Your data never leaves your device. We use SQLite for fast, reliable, and private storage.
+- **Native Android Widgets**: Log your habits directly from your home screen with real-time synchronization.
+- **AI Behavioral Intelligence**: Get strategic insights and advice based on behavioral science principles. Shistu uses your local data patterns to help you identify friction points and stack your habits effectively (requires your own Google Gemini API key).
+- **Deep Customization**: Choose any emoji and any color for your habits with a professional picker.
+- **OLED Dark Mode**: A beautiful, high-contrast interface designed to save battery and reduce eye strain.
+
+No accounts required. No tracking. Just your habits.
