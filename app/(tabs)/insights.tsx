@@ -38,10 +38,12 @@ export default function InsightsScreen() {
         return;
       }
 
-      // 1. Fetch 30 days of habit data
+      // 1. Fetch 30 days of habit data with pre-calculated summaries
+      const now = new Date();
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const dateLimit = thirtyDaysAgo.toISOString().split('T')[0];
+      const todayStr = now.toISOString().split('T')[0];
 
       const habits = db.getAllSync<{ id: number; name: string; type: string; ai_granularity: string }>(`SELECT * FROM habits`);
       
@@ -51,28 +53,42 @@ export default function InsightsScreen() {
         return;
       }
 
-      let promptData = "User Habit Data (Last 30 Days):\n";
+      let summaryData = `Analysis Date: ${todayStr} (${now.toLocaleDateString('en-US', { weekday: 'long' })})\n\n`;
       let hasEvents = false;
       
       for (const habit of habits) {
-        if (habit.ai_granularity === 'raw') {
-          const events = db.getAllSync<{ timestamp: string; value: number }>(
-            `SELECT timestamp, numeric_value as value FROM events WHERE habit_id = ? AND timestamp >= ?`,
+        // Calculate basic stats to save tokens and provide AI a head-start
+        const totalLogs = db.getFirstSync<{ count: number }>(
+          `SELECT COUNT(*) as count FROM events WHERE habit_id = ? AND timestamp >= ?`,
+          habit.id, dateLimit
+        )?.count || 0;
+
+        if (totalLogs > 0) {
+          hasEvents = true;
+          
+          const dailyStats = db.getAllSync<{ day: string; total: number }>(
+            `SELECT date(timestamp) as day, SUM(numeric_value) as total FROM events WHERE habit_id = ? AND timestamp >= ? GROUP BY day ORDER BY day ASC`,
             habit.id, dateLimit
           );
-          if (events.length > 0) hasEvents = true;
-          promptData += `- Habit: ${habit.name} (${habit.type})\n  Logs: ${JSON.stringify(events)}\n`;
-        } else {
-          const stats = db.getAllSync<{ day: string; total: number }>(
-            `SELECT date(timestamp) as day, SUM(numeric_value) as total FROM events WHERE habit_id = ? AND timestamp >= ? GROUP BY day`,
-            habit.id, dateLimit
-          );
+
           const notes = db.getAllSync<{ timestamp: string; notes: string }>(
-            'SELECT timestamp, notes FROM events WHERE habit_id = ? AND timestamp >= ? AND notes IS NOT NULL AND notes != ""',
+            'SELECT timestamp, notes FROM events WHERE habit_id = ? AND timestamp >= ? AND notes IS NOT NULL AND notes != "" ORDER BY timestamp DESC LIMIT 5',
             habit.id, dateLimit
           );
-          if (stats.length > 0) hasEvents = true;
-          promptData += `- Habit: ${habit.name} (${habit.type})\n  Daily Totals: ${JSON.stringify(stats)}\n  Event Notes: ${JSON.stringify(notes)}\n`;
+
+          // Get day of week frequency
+          const dowStats = db.getAllSync<{ dow: number; count: number }>(
+            `SELECT strftime('%w', timestamp) as dow, COUNT(*) as count FROM events WHERE habit_id = ? AND timestamp >= ? GROUP BY dow`,
+            habit.id, dateLimit
+          );
+
+          summaryData += `## Habit: ${habit.name} (${habit.type})\n`;
+          summaryData += `- 30-day logs: ${totalLogs}\n`;
+          summaryData += `- Daily Totals: ${JSON.stringify(dailyStats)}\n`;
+          if (notes.length > 0) {
+            summaryData += `- Qualitative Notes (Latest 5): ${JSON.stringify(notes)}\n`;
+          }
+          summaryData += `- Weekday Dist (0=Sun, 6=Sat): ${JSON.stringify(dowStats)}\n\n`;
         }
       }
 
@@ -89,23 +105,31 @@ export default function InsightsScreen() {
         model: storedModel,
         generationConfig: {
           responseMimeType: "application/json",
+          temperature: 0.7,
         }
       });
 
       const systemPrompt = `
-        Act as a behavioral analyst for a habit tracking app called Shistu.
-        Analyze the user's local habit data and provide strategic, personalized insights.
-        Use any "Event Notes" provided for qualitative context to better understand the user's behavior, struggles, or successes.
+        You are an elite Behavioral Science Coach for "Shistu," a high-performance habit tracker.
         
-        The JSON response must have exactly these keys:
+        TASK:
+        Analyze the provided 30-day behavioral data. Identify non-obvious patterns, correlations between qualitative notes and quantitative performance, and potential "friction points" (times or situations where the user fails).
+        
+        CONSTRAINTS:
+        - Be concise and punchy.
+        - Avoid stating the obvious (e.g., "You logged 5 times").
+        - Use scientific principles like habit stacking, implementation intentions, or variable rewards.
+        - Tone: Encouraging, insightful, and strategic.
+        
+        OUTPUT SCHEMA (JSON):
         {
-          "observation": "A short sentence about a specific pattern (e.g. 'You track water more on weekends than weekdays.')",
-          "friction": "A potential reason for a struggle or a success (e.g. 'Work-week stress might be causing you to forget water.')",
-          "advice": "One actionable, scientifically-backed tip (e.g. 'Keep a water bottle on your desk during office hours.')"
+          "observation": "Identify a specific behavioral trend or correlation (e.g., 'You are 40% more likely to miss your yoga goal on Tuesdays when you mention work stress in your notes.')",
+          "friction": "Pinpoint the psychological or environmental hurdle (e.g., 'Tuesday evening work meetings are draining your willpower reserve before your planned session.')",
+          "advice": "A concrete, actionable strategy based on behavioral science (e.g., 'Try 'Implementation Intentions': If I have a late meeting on Tuesday, I will do just 5 minutes of stretching immediately after to keep the streak alive.')"
         }
         
-        Data:
-        ${promptData}
+        USER DATA:
+        ${summaryData}
       `;
 
       const result = await model.generateContent(systemPrompt);
