@@ -141,26 +141,66 @@ export default function AddHabitScreen() {
       </View>
 
       <Text style={styles.label}>Icon & Color</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectionRow}>
-        {ICONS.map(icon => (
-          <TouchableOpacity 
-            key={icon} 
-            style={[styles.iconBox, selectedIcon === icon && styles.activeBox]}
-            onPress={() => setSelectedIcon(icon)}
-          >
-            <Text style={styles.iconText}>{icon}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={styles.selectionRow}>
-        {COLORS.map(color => (
-          <TouchableOpacity 
-            key={color} 
-            style={[styles.colorBox, { backgroundColor: color }, selectedColor === color && styles.activeColorBox]}
-            onPress={() => setSelectedColor(color)}
+      <View style={styles.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.subLabel}>Quick Icons</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selectionRow}>
+            {ICONS.map(icon => (
+              <TouchableOpacity 
+                key={icon} 
+                style={[styles.iconBox, selectedIcon === icon && styles.activeBox]}
+                onPress={() => setSelectedIcon(icon)}
+              >
+                <Text style={styles.iconText}>{icon}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+        <View style={{ width: 80 }}>
+          <Text style={styles.subLabel}>Custom</Text>
+          <TextInput
+            style={[styles.input, { textAlign: 'center', fontSize: 24, padding: 8, height: 50 }]}
+            value={ICONS.includes(selectedIcon) ? '' : selectedIcon}
+            onChangeText={(text) => {
+              if (text.length > 0) {
+                // Keep only the last character/emoji
+                const emoji = Array.from(text).pop() || '';
+                setSelectedIcon(emoji);
+              }
+            }}
+            placeholder="😀"
+            placeholderTextColor="#555"
           />
-        ))}
+        </View>
+      </View>
+
+      <View style={styles.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.subLabel}>Quick Colors</Text>
+          <View style={styles.selectionRow}>
+            {COLORS.map(color => (
+              <TouchableOpacity 
+                key={color} 
+                style={[styles.colorBox, { backgroundColor: color }, selectedColor === color && styles.activeColorBox]}
+                onPress={() => setSelectedColor(color)}
+              />
+            ))}
+          </View>
+        </View>
+        <View style={{ width: 100 }}>
+          <Text style={styles.subLabel}>Hex</Text>
+          <TextInput
+            style={[styles.input, { padding: 10, height: 40, fontSize: 14 }]}
+            value={selectedColor}
+            onChangeText={(text) => {
+              setSelectedColor(text);
+            }}
+            placeholder="#HEX"
+            placeholderTextColor="#555"
+            autoCapitalize="characters"
+            maxLength={7}
+          />
+        </View>
       </View>
 
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -175,8 +215,9 @@ const styles = StyleSheet.create({
   topBuffer: { height: 30 },
   content: { padding: 20, paddingBottom: 40 },
   label: { color: '#888', fontSize: 12, fontWeight: 'bold', marginTop: 20, marginBottom: 10, textTransform: 'uppercase' },
+  subLabel: { color: '#555', fontSize: 10, fontWeight: 'bold', marginBottom: 5, textTransform: 'uppercase' },
   input: { backgroundColor: '#1E1E1E', color: '#FFF', borderRadius: 8, padding: 15, fontSize: 16 },
-  row: { flexDirection: 'row', gap: 15 },
+  row: { flexDirection: 'row', gap: 15, marginBottom: 10 },
   toggleRow: { flexDirection: 'row', gap: 8 },
   smallToggle: { flex: 1, backgroundColor: '#1E1E1E', padding: 12, borderRadius: 8, alignItems: 'center', borderWidth: 1, borderColor: 'transparent' },
   activeToggle: { backgroundColor: '#4DA8DA33', borderColor: '#4DA8DA' },
@@ -184,7 +225,7 @@ const styles = StyleSheet.create({
   activeToggleText: { color: '#4DA8DA' },
   selectionRow: { flexDirection: 'row', marginBottom: 10, flexWrap: 'wrap', gap: 10 },
   iconBox: { backgroundColor: '#1E1E1E', width: 50, height: 50, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  activeBox: { borderColor: '#4DA8DA', backgroundColor: '#4DA8DA33' },
+  activeBox: { borderColor: '#4DA8DA', backgroundColor: '#4DA8DA33', borderWidth: 1 },
   iconText: { fontSize: 24 },
   colorBox: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, borderColor: 'transparent' },
   activeColorBox: { borderColor: '#FFF' },
